@@ -13,7 +13,7 @@
     <Window.Resources>
         <conv:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <conv:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
-        <conv:BooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
+        <conv:InverseBoolConverter x:Key="InverseBoolConverter"/>
     </Window.Resources>
 
     <Grid Background="#2C3E50">
@@ -60,7 +60,7 @@
                          FontSize="14"
                          Height="35"
                          Padding="10"
-                         IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                         IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBoolConverter}}"/>
             </StackPanel>
 
             <!-- 密码 -->
@@ -75,7 +75,7 @@
                              FontSize="14"
                              Height="35"
                              Padding="10"
-                             IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                             IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBoolConverter}}"/>
             </StackPanel>
 
             <!-- 错误信息 -->
@@ -91,7 +91,7 @@
                         Orientation="Horizontal" 
                         HorizontalAlignment="Center"
                         Margin="0,30,0,0">
-                <Button Content="登录" 
+                <Button Content="登录"
                         Command="{Binding LoginCommand}"
                         Background="#27AE60"
                         Foreground="White"
@@ -100,16 +100,15 @@
                         Width="130"
                         Height="45"
                         Margin="5"
-                        Cursor="Hand"
-                        IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                        Cursor="Hand">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}" 
+                                        <Border Background="{TemplateBinding Background}"
                                                 CornerRadius="8">
-                                            <ContentPresenter HorizontalAlignment="Center" 
+                                            <ContentPresenter HorizontalAlignment="Center"
                                                               VerticalAlignment="Center"/>
                                         </Border>
                                     </ControlTemplate>
@@ -122,12 +121,15 @@
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter Property="Background" Value="#1B7A41"/>
                                 </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
                 </Button>
 
-                <Button Content="注册" 
+                <Button Content="注册"
                         Command="{Binding RegisterCommand}"
                         Background="#3498DB"
                         Foreground="White"
@@ -142,11 +144,16 @@
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}" 
+                                        <Border Background="{TemplateBinding Background}"
                                                 CornerRadius="8">
-                                            <ContentPresenter HorizontalAlignment="Center" 
+                                            <ContentPresenter HorizontalAlignment="Center"
                                                               VerticalAlignment="Center"/>
                                         </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Opacity" Value="0.5"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
                                     </ControlTemplate>
                                 </Setter.Value>
                             </Setter>
@@ -156,6 +163,9 @@
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter Property="Background" Value="#1F618D"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
                                 </Trigger>
                             </Style.Triggers>
                         </Style>

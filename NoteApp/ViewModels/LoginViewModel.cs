@@ -53,7 +53,10 @@ namespace NoteApp.ViewModels
             _dataService = dataService;
             _dialogService = dialogService;
 
-            LoginCommand = new DelegateCommand(Login, CanLogin);
+            LoginCommand = new DelegateCommand(Login, CanLogin)
+                .ObservesProperty(() => Username)
+                .ObservesProperty(() => Password)
+                .ObservesProperty(() => IsLoading);
             RegisterCommand = new DelegateCommand(Register);
             ExitCommand = new DelegateCommand(Exit);
         }

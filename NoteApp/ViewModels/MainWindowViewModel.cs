@@ -44,7 +44,7 @@ namespace NoteApp.ViewModels
             CurrentRole = SessionManager.CurrentUserRole;
 
             NavigateToNotesCommand = new DelegateCommand(() => NavigateTo("NoteManage"));
-            NavigateToUsersCommand = new DelegateCommand(() => NavigateTo("UserManage"), CanNavigateToUsers);
+            NavigateToUsersCommand = new DelegateCommand(() => NavigateTo("UserMannger"), CanNavigateToUsers);
             LogoutCommand = new DelegateCommand(Logout);
             ExitCommand = new DelegateCommand(Exit);
 
