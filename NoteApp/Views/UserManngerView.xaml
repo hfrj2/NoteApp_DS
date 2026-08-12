@@ -1,0 +1,559 @@
+﻿<!--  Views/UserManageView.xaml  -->
+<UserControl
+    x:Class="NoteApp.Views.UserManageView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:conv="clr-namespace:NoteApp.Converters"
+    xmlns:prism="http://prismlibrary.com/"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    Background="#ECF0F1"
+    Height="650" Width="1200">
+
+    <UserControl.Resources>
+        <conv:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+        <conv:RoleToColorConverter x:Key="RoleToColorConverter" />
+
+        <DataTemplate x:Key="UserItemTemplate">
+            <Border
+                Margin="5"
+                Padding="15"
+                Background="White"
+                BorderBrush="#BDC3C7"
+                BorderThickness="1"
+                CornerRadius="10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock
+                            FontSize="15"
+                            FontWeight="Bold"
+                            Text="{Binding Username}" />
+                        <TextBlock
+                            Margin="0,2,0,0"
+                            FontSize="12"
+                            Foreground="#7F8C8D"
+                            Text="{Binding Phone}" />
+                        <TextBlock
+                            FontSize="12"
+                            Foreground="#95A5A6"
+                            Text="{Binding Address}"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <Border
+                        Grid.Column="1"
+                        Margin="10,0,0,0"
+                        Padding="10,4"
+                        VerticalAlignment="Center"
+                        Background="{Binding Role, Converter={StaticResource RoleToColorConverter}}"
+                        CornerRadius="4">
+                        <TextBlock
+                            FontSize="11"
+                            FontWeight="Bold"
+                            Foreground="White"
+                            Text="{Binding Role}" />
+                    </Border>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="400" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!--  左侧：用户列表  -->
+        <Border
+            Grid.Column="0"
+            Background="#F8F9FA"
+            BorderBrush="#BDC3C7"
+            BorderThickness="0,0,1,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!--  搜索栏  -->
+                <Border
+                    Grid.Row="0"
+                    Padding="10"
+                    Background="White"
+                    BorderBrush="#BDC3C7"
+                    BorderThickness="0,0,0,1">
+                    <Grid>
+                        <TextBox
+                            x:Name="SearchBox"
+                            Height="35"
+                            Padding="35,0,10,0"
+                            VerticalContentAlignment="Center"
+                            Background="#F8F9FA"
+                            BorderBrush="#BDC3C7"
+                            FontSize="14"
+                            Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock
+                            Margin="10,0,0,0"
+                            VerticalAlignment="Center"
+                            FontSize="18"
+                            IsHitTestVisible="False"
+                            Text="🔍" />
+                        <TextBlock
+                            Margin="35,0,0,0"
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            Foreground="#95A5A6"
+                            IsHitTestVisible="False"
+                            Text="搜索用户...">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+
+                <!--  工具栏  -->
+                <Border
+                    Grid.Row="1"
+                    Padding="10"
+                    Background="White"
+                    BorderBrush="#BDC3C7"
+                    BorderThickness="0,0,0,1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button
+                            Grid.Column="0"
+                            Padding="15,8"
+                            Background="#27AE60"
+                            Command="{Binding AddCommand}"
+                            Content="➕ 新增用户"
+                            Cursor="Hand"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="White">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                                    <ContentPresenter
+                                                        Margin="{TemplateBinding Padding}"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center" />
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#219A52" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                        <Button
+                            Grid.Column="2"
+                            Padding="15,8"
+                            Background="#3498DB"
+                            Command="{Binding RefreshCommand}"
+                            Content="🔄 刷新"
+                            Cursor="Hand"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="White">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                                    <ContentPresenter
+                                                        Margin="{TemplateBinding Padding}"
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center" />
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#2980B9" />
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!--  用户列表  -->
+                <ListBox
+                    Grid.Row="2"
+                    Margin="10"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ItemTemplate="{StaticResource UserItemTemplate}"
+                    ItemsSource="{Binding Users}"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                    SelectedItem="{Binding SelectedUser}">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                            <Setter Property="Background" Value="Transparent" />
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="Padding" Value="0" />
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderBrush" Value="#3498DB" />
+                                    <Setter Property="BorderThickness" Value="2" />
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="Transparent" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <!--  右侧：用户详情  -->
+        <Border
+            Grid.Column="1"
+            Padding="20"
+            Background="White">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!--  如果未选中用户  -->
+                <StackPanel
+                    Grid.Row="0"
+                    Margin="0,0,0,20"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Visibility="{Binding SelectedUser, Converter={StaticResource NullToVisibilityConverter}}">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="64"
+                        Text="👤" />
+                    <TextBlock
+                        Margin="0,10,0,0"
+                        HorizontalAlignment="Center"
+                        FontSize="18"
+                        Foreground="#95A5A6"
+                        Text="请选择一个用户" />
+                </StackPanel>
+
+                <!--  用户信息编辑  -->
+                <Grid
+                    Grid.Row="1"
+                    Margin="0,20,0,0"
+                    Visibility="{Binding SelectedUser, Converter={StaticResource NullToVisibilityConverter}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!--  用户名  -->
+                    <TextBlock
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Margin="0,10"
+                        VerticalAlignment="Center"
+                        FontWeight="Bold"
+                        Text="用户名：" />
+                    <TextBox
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Height="35"
+                        Margin="0,10"
+                        Padding="10"
+                        VerticalContentAlignment="Center"
+                        FontSize="14"
+                        IsReadOnly="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}"
+                        Text="{Binding EditingUser.Username, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <!--  密码  -->
+                    <TextBlock
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        Margin="0,10"
+                        VerticalAlignment="Center"
+                        FontWeight="Bold"
+                        Text="密码：" />
+                    <PasswordBox
+                        x:Name="PasswordBox"
+                        Height="35"
+                        Margin="0,10"
+                        Padding="10"
+                        FontSize="14"
+                        IsEnabled="{Binding IsEditing}"
+                        PasswordChanged="PasswordBox_PasswordChanged" />
+
+                    <!--  电话  -->
+                    <TextBlock
+                        Grid.Row="2"
+                        Grid.Column="0"
+                        Margin="0,10"
+                        VerticalAlignment="Center"
+                        FontWeight="Bold"
+                        Text="电话：" />
+                    <TextBox
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Height="35"
+                        Margin="0,10"
+                        Padding="10"
+                        VerticalContentAlignment="Center"
+                        FontSize="14"
+                        IsReadOnly="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}"
+                        Text="{Binding EditingUser.Phone, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <!--  地址  -->
+                    <TextBlock
+                        Grid.Row="3"
+                        Grid.Column="0"
+                        Margin="0,10"
+                        VerticalAlignment="Top"
+                        FontWeight="Bold"
+                        Text="地址：" />
+                    <TextBox
+                        Grid.Row="3"
+                        Grid.Column="1"
+                        Height="60"
+                        Margin="0,10"
+                        Padding="10"
+                        FontSize="14"
+                        IsReadOnly="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}"
+                        Text="{Binding EditingUser.Address, UpdateSourceTrigger=PropertyChanged}"
+                        TextWrapping="Wrap" />
+
+                    <!--  角色  -->
+                    <TextBlock
+                        Grid.Row="4"
+                        Grid.Column="0"
+                        Margin="0,10"
+                        VerticalAlignment="Center"
+                        FontWeight="Bold"
+                        Text="角色：" />
+                    <ComboBox
+                        Grid.Row="4"
+                        Grid.Column="1"
+                        Height="35"
+                        Margin="0,10"
+                        FontSize="14"
+                        IsEnabled="{Binding IsEditing}"
+                        ItemsSource="{Binding Roles}"
+                        SelectedItem="{Binding EditingUser.Role}"
+                        Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <TextBlock
+                        Grid.Row="4"
+                        Grid.Column="1"
+                        Margin="0,10"
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Text="{Binding EditingUser.Role}"
+                        Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}" />
+
+                    <!--  创建时间  -->
+                    <TextBlock
+                        Grid.Row="5"
+                        Grid.Column="0"
+                        Margin="0,10"
+                        VerticalAlignment="Center"
+                        FontWeight="Bold"
+                        Text="创建时间：" />
+                    <TextBlock
+                        Grid.Row="5"
+                        Grid.Column="1"
+                        Margin="0,10"
+                        VerticalAlignment="Center"
+                        FontSize="14"
+                        Text="{Binding EditingUser.CreateTime, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" />
+                </Grid>
+
+                <!--  按钮  -->
+                <StackPanel
+                    Grid.Row="2"
+                    Margin="0,20,0,0"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal"
+                    Visibility="{Binding SelectedUser, Converter={StaticResource NullToVisibilityConverter}}">
+                    <Button
+                        Margin="5,0"
+                        Padding="20,10"
+                        Background="#3498DB"
+                        Command="{Binding EditCommand}"
+                        Content="✏️ 编辑"
+                        Cursor="Hand"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Foreground="White"
+                        Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=Inverse}">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                                <ContentPresenter
+                                                    Margin="{TemplateBinding Padding}"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center" />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#2980B9" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button
+                        Margin="5,0"
+                        Padding="20,10"
+                        Background="#27AE60"
+                        Command="{Binding SaveCommand}"
+                        Content="💾 保存"
+                        Cursor="Hand"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Foreground="White"
+                        Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                                <ContentPresenter
+                                                    Margin="{TemplateBinding Padding}"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center" />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#219A52" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button
+                        Margin="5,0"
+                        Padding="20,10"
+                        Background="#95A5A6"
+                        Command="{Binding CancelCommand}"
+                        Content="❌ 取消"
+                        Cursor="Hand"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Foreground="White"
+                        Visibility="{Binding IsEditing, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                                <ContentPresenter
+                                                    Margin="{TemplateBinding Padding}"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center" />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#7F8C8D" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button
+                        Margin="5,0"
+                        Padding="20,10"
+                        Background="#E74C3C"
+                        Command="{Binding DeleteCommand}"
+                        Content="🗑️ 删除"
+                        Cursor="Hand"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Foreground="White">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="5">
+                                                <ContentPresenter
+                                                    Margin="{TemplateBinding Padding}"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center" />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#C0392B" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
