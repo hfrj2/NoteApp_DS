@@ -44,10 +44,16 @@ namespace NoteApp.ViewModels
             CurrentRole = SessionManager.CurrentUserRole;
 
             NavigateToNotesCommand = new DelegateCommand(() => NavigateTo("NoteManage"));
-            NavigateToUsersCommand = new DelegateCommand(() => NavigateTo("UserMannger"), CanNavigateToUsers);
+            NavigateToUsersCommand = new DelegateCommand(() => NavigateTo("UserManageclaude"), CanNavigateToUsers);
             LogoutCommand = new DelegateCommand(Logout);
             ExitCommand = new DelegateCommand(Exit);
+        }
 
+        /// <summary>
+        /// 窗口加载完成后执行初始导航（延迟导航，确保区域适配器已初始化）
+        /// </summary>
+        public void OnWindowLoaded()
+        {
             // 默认加载便签管理
             NavigateTo("NoteManage");
         }

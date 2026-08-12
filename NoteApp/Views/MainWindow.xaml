@@ -5,7 +5,7 @@
         xmlns:prism="http://prismlibrary.com/"
         xmlns:conv="clr-namespace:NoteApp.Converters"
         prism:ViewModelLocator.AutoWireViewModel="True"
-        Title="便签管理系统" 
+        Title="便签管理系统"
         Height="750" Width="1200"
         WindowStartupLocation="CenterScreen"
         MinHeight="600" MinWidth="900">

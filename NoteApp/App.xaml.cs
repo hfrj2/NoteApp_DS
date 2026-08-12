@@ -23,7 +23,7 @@ namespace NoteApp
             containerRegistry.RegisterSingleton<Services.IDialogService, Services.DialogService>();
 
             containerRegistry.RegisterForNavigation<NoteManageView>("NoteManage");
-            containerRegistry.RegisterForNavigation<UserManageView>("UserMannger");
+            containerRegistry.RegisterForNavigation<UserManageView>("UserManage");
             containerRegistry.RegisterForNavigation<RegisterView>("Register");
         }
 
