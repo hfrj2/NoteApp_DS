@@ -19,8 +19,8 @@ namespace NoteApp
     {
         protected override Window CreateShell()
         {
-            // 不使用默认 Shell，手动控制窗口显示
-            return null;
+            // 返回主窗口作为 Shell，Prism 会在其上附加全局 RegionManager 并注册区域
+            return Container.Resolve<MainWindow>();
         }
 
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
@@ -49,7 +49,8 @@ namespace NoteApp
 
         protected override void OnInitialized()
         {
-            base.OnInitialized();
+            // 注意：不能调用 base.OnInitialized()——Prism 基类会立即显示主窗口，
+            // 破坏“先登录、后进入主界面”的流程
 
             // 初始化数据库
             using (var context = new AppDbContext())
@@ -79,10 +80,9 @@ namespace NoteApp
 
             if (result == true)
             {
-                // 登录成功，显示主窗口
-                var mainWindow = Container.Resolve<MainWindow>();
-                Application.Current.MainWindow = mainWindow;
-                mainWindow.Show();
+                // 登录成功：显示主窗口，关闭主窗口时退出程序
+                Application.Current.ShutdownMode = ShutdownMode.OnMainWindowClose;
+                MainWindow.Show();
             }
             else
             {
