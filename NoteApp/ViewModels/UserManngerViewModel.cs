@@ -1,265 +1,209 @@
-﻿// ViewModels/UserManageViewModel.cs
-using NoteApp.Models;
-using NoteApp.Services;
-using Prism.Commands;
-using Prism.Mvvm;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Windows.Input;
+using Prism.Commands;
+using Prism.Mvvm;
+using NoteApp.Models;
+using NoteApp.Services;
+using System.Windows;
 
 namespace NoteApp.ViewModels
 {
     public class UserManageViewModel : BindableBase
     {
-        private readonly IDataService _dataService;
-        private readonly IDialogService _dialogService;
+        private readonly IUserService _userService;
+        private readonly ISessionService _sessionService;
 
         private ObservableCollection<User> _users;
-        private User _selectedUser;
-        private User _editingUser;
-        private string _searchText;
-        private bool _isEditing;
-        private ObservableCollection<string> _roles;
-
         public ObservableCollection<User> Users
         {
             get => _users;
             set => SetProperty(ref _users, value);
         }
 
+        private User _selectedUser;
         public User SelectedUser
         {
             get => _selectedUser;
             set
             {
-                SetProperty(ref _selectedUser, value);
-                if (value != null)
+                if (SetProperty(ref _selectedUser, value) && value != null)
                 {
-                    EditingUser = new User
+                    EditId = value.Id;
+                    EditAccountName = value.AccountName;
+                    EditPhone = value.Phone;
+                    EditAddress = value.Address;
+                    EditPassword = string.Empty; // 编辑时密码留空表示不修改
+                }
+            }
+        }
+
+        private int _editId;
+        public int EditId
+        {
+            get => _editId;
+            set => SetProperty(ref _editId, value);
+        }
+
+        private string _editAccountName;
+        public string EditAccountName
+        {
+            get => _editAccountName;
+            set => SetProperty(ref _editAccountName, value);
+        }
+
+        private string _editPassword;
+        public string EditPassword
+        {
+            get => _editPassword;
+            set => SetProperty(ref _editPassword, value);
+        }
+
+        private string _editPhone;
+        public string EditPhone
+        {
+            get => _editPhone;
+            set => SetProperty(ref _editPhone, value);
+        }
+
+        private string _editAddress;
+        public string EditAddress
+        {
+            get => _editAddress;
+            set => SetProperty(ref _editAddress, value);
+        }
+
+        public DelegateCommand AddCommand { get; }
+        public DelegateCommand SaveCommand { get; }
+        public DelegateCommand DeleteCommand { get; }
+        public DelegateCommand RefreshCommand { get; }
+
+        public UserManageViewModel(IUserService userService, ISessionService sessionService)
+        {
+            _userService = userService;
+            _sessionService = sessionService;
+
+            AddCommand = new DelegateCommand(Add);
+            SaveCommand = new DelegateCommand(Save, CanSave);
+            DeleteCommand = new DelegateCommand(Delete, CanDelete);
+            RefreshCommand = new DelegateCommand(Refresh);
+
+            PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(EditAccountName) || e.PropertyName == nameof(EditPassword))
+                    SaveCommand.RaiseCanExecuteChanged();
+                if (e.PropertyName == nameof(SelectedUser))
+                    DeleteCommand.RaiseCanExecuteChanged();
+            };
+
+            Refresh();
+        }
+
+        private void Add()
+        {
+            SelectedUser = null;
+            EditId = 0;
+            EditAccountName = string.Empty;
+            EditPassword = string.Empty;
+            EditPhone = string.Empty;
+            EditAddress = string.Empty;
+        }
+
+        private bool CanSave()
+        {
+            if (EditId == 0)
+            {
+                // 新增时账户名和密码必填
+                return !string.IsNullOrWhiteSpace(EditAccountName) && !string.IsNullOrWhiteSpace(EditPassword);
+            }
+            else
+            {
+                // 编辑时账户名必填，密码可选
+                return !string.IsNullOrWhiteSpace(EditAccountName);
+            }
+        }
+
+        private void Save()
+        {
+            try
+            {
+                if (EditId == 0)
+                {
+                    // 新增用户
+                    if (_userService.AccountExists(EditAccountName.Trim()))
                     {
-                        Id = value.Id,
-                        Username = value.Username,
-                        Password = value.Password,
-                        Phone = value.Phone,
-                        Address = value.Address,
-                        Role = value.Role,
-                        CreateTime = value.CreateTime,
-                        LastLogin = value.LastLogin
+                        MessageBox.Show("账户名已存在", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                    var user = new User
+                    {
+                        AccountName = EditAccountName.Trim(),
+                        Phone = EditPhone?.Trim(),
+                        Address = EditAddress?.Trim()
                     };
+                    _userService.Register(user, EditPassword);
                 }
                 else
                 {
-                    EditingUser = null;
-                }
-                ((DelegateCommand)EditCommand).RaiseCanExecuteChanged();
-                ((DelegateCommand)DeleteCommand).RaiseCanExecuteChanged();
-            }
-        }
+                    // 编辑用户
+                    var user = _userService.GetUserById(EditId);
+                    if (user == null) return;
 
-        public User EditingUser
-        {
-            get => _editingUser;
-            set => SetProperty(ref _editingUser, value);
-        }
-
-        public string SearchText
-        {
-            get => _searchText;
-            set
-            {
-                SetProperty(ref _searchText, value);
-                LoadUsersAsync();
-            }
-        }
-
-        public bool IsEditing
-        {
-            get => _isEditing;
-            set => SetProperty(ref _isEditing, value);
-        }
-
-        public ObservableCollection<string> Roles
-        {
-            get => _roles;
-            set => SetProperty(ref _roles, value);
-        }
-
-        public ICommand AddCommand { get; }
-        public ICommand EditCommand { get; }
-        public ICommand DeleteCommand { get; }
-        public ICommand SaveCommand { get; }
-        public ICommand CancelCommand { get; }
-        public ICommand RefreshCommand { get; }
-
-        public UserManageViewModel(IDataService dataService, IDialogService dialogService)
-        {
-            _dataService = dataService;
-            _dialogService = dialogService;
-
-            Users = new ObservableCollection<User>();
-            Roles = new ObservableCollection<string> { "User", "Admin" };
-
-            AddCommand = new DelegateCommand(AddUser);
-            EditCommand = new DelegateCommand(EditUser, CanEditUser);
-            DeleteCommand = new DelegateCommand(DeleteUser, CanDeleteUser);
-            SaveCommand = new DelegateCommand(SaveUser, CanSaveUser);
-            CancelCommand = new DelegateCommand(CancelEdit);
-            RefreshCommand = new DelegateCommand(LoadUsersAsync);
-
-            LoadUsersAsync();
-        }
-
-        private bool CanEditUser() => SelectedUser != null && !IsEditing && SelectedUser.Id != SessionManager.CurrentUserId;
-        private bool CanDeleteUser() => SelectedUser != null && !IsEditing && SelectedUser.Id != SessionManager.CurrentUserId;
-        private bool CanSaveUser() => IsEditing && EditingUser != null && !string.IsNullOrWhiteSpace(EditingUser.Username);
-
-        private async void LoadUsersAsync()
-        {
-            try
-            {
-                var users = await _dataService.GetAllUsersAsync();
-
-                if (!string.IsNullOrWhiteSpace(SearchText))
-                {
-                    users = users.Where(u => u.Username.Contains(SearchText) ||
-                                             u.Phone.Contains(SearchText) ||
-                                             u.Address.Contains(SearchText)).ToList();
-                }
-
-                Users.Clear();
-                foreach (var user in users.OrderBy(u => u.Username))
-                {
-                    Users.Add(user);
-                }
-            }
-            catch (Exception ex)
-            {
-                _dialogService.ShowError($"加载用户失败：{ex.Message}");
-            }
-        }
-
-        private void AddUser()
-        {
-            EditingUser = new User
-            {
-                Username = "",
-                Password = "",
-                Phone = "",
-                Address = "",
-                Role = "User",
-                CreateTime = DateTime.Now
-            };
-            IsEditing = true;
-            SelectedUser = null;
-        }
-
-        private void EditUser()
-        {
-            if (SelectedUser == null) return;
-            IsEditing = true;
-        }
-
-        private async void DeleteUser()
-        {
-            if (SelectedUser == null) return;
-
-            if (_dialogService.ShowConfirm($"确定要删除用户 \"{SelectedUser.Username}\" 吗？\n该用户的所有便签也会被删除。"))
-            {
-                try
-                {
-                    var success = await _dataService.DeleteUserAsync(SelectedUser.Id);
-                    if (success)
+                    // 检查账户名是否与其他用户重复
+                    if (_userService.AccountExists(EditAccountName.Trim(), EditId))
                     {
-                        Users.Remove(SelectedUser);
-                        SelectedUser = null;
-                        _dialogService.ShowMessage("删除成功");
-                    }
-                    else
-                    {
-                        _dialogService.ShowError("删除失败");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _dialogService.ShowError($"删除失败：{ex.Message}");
-                }
-            }
-        }
-
-        private async void SaveUser()
-        {
-            if (EditingUser == null) return;
-
-            if (string.IsNullOrWhiteSpace(EditingUser.Username))
-            {
-                _dialogService.ShowWarning("请输入用户名");
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(EditingUser.Password) && EditingUser.Id == 0)
-            {
-                _dialogService.ShowWarning("请输入密码");
-                return;
-            }
-
-            try
-            {
-                bool success;
-                if (EditingUser.Id == 0)
-                {
-                    var existingUser = await _dataService.GetUserByUsernameAsync(EditingUser.Username);
-                    if (existingUser != null)
-                    {
-                        _dialogService.ShowWarning("用户名已存在");
+                        MessageBox.Show("账户名已存在", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
-                    success = await _dataService.AddUserAsync(EditingUser);
+                    user.AccountName = EditAccountName.Trim();
+                    user.Phone = EditPhone?.Trim();
+                    user.Address = EditAddress?.Trim();
+                    _userService.UpdateUser(user, string.IsNullOrWhiteSpace(EditPassword) ? null : EditPassword);
                 }
-                else
-                {
-                    success = await _dataService.UpdateUserAsync(EditingUser);
-                }
-
-                if (success)
-                {
-                    _dialogService.ShowMessage(EditingUser.Id == 0 ? "添加成功" : "更新成功");
-                    IsEditing = false;
-                    LoadUsersAsync();
-                    if (EditingUser.Id > 0)
-                    {
-                        SelectedUser = Users.FirstOrDefault(u => u.Id == EditingUser.Id);
-                    }
-                }
-                else
-                {
-                    _dialogService.ShowError("保存失败");
-                }
+                Refresh();
             }
             catch (Exception ex)
             {
-                _dialogService.ShowError($"保存失败：{ex.Message}");
+                MessageBox.Show($"保存失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        private void CancelEdit()
+        private bool CanDelete()
         {
-            IsEditing = false;
-            EditingUser = null;
-            if (SelectedUser != null)
+            return SelectedUser != null && SelectedUser.Id != _sessionService.CurrentUser?.Id;
+        }
+
+        private void Delete()
+        {
+            if (SelectedUser == null) return;
+
+            if (SelectedUser.Id == _sessionService.CurrentUser?.Id)
             {
-                EditingUser = new User
-                {
-                    Id = SelectedUser.Id,
-                    Username = SelectedUser.Username,
-                    Password = SelectedUser.Password,
-                    Phone = SelectedUser.Phone,
-                    Address = SelectedUser.Address,
-                    Role = SelectedUser.Role,
-                    CreateTime = SelectedUser.CreateTime,
-                    LastLogin = SelectedUser.LastLogin
-                };
+                MessageBox.Show("不能删除当前登录用户", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var result = MessageBox.Show($"确定要删除用户“{SelectedUser.AccountName}”吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result == MessageBoxResult.Yes)
+            {
+                _userService.DeleteUser(SelectedUser.Id);
+                Refresh();
+            }
+        }
+
+        private void Refresh()
+        {
+            var list = _userService.GetAllUsers();
+            Users = new ObservableCollection<User>(list);
+            if (Users.Any())
+            {
+                SelectedUser = Users[0];
+            }
+            else
+            {
+                SelectedUser = null;
+                Add();
             }
         }
     }

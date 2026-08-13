@@ -1,146 +1,128 @@
-﻿// ViewModels/RegisterViewModel.cs
-using NoteApp.Models;
+﻿using NoteApp.Models;
 using NoteApp.Services;
-using NoteApp.Views;
 using Prism.Commands;
 using Prism.Mvvm;
 using System;
 using System.Linq;
 using System.Windows;
-using System.Windows.Input;
 
 namespace NoteApp.ViewModels
 {
     public class RegisterViewModel : BindableBase
     {
-        private readonly IDataService _dataService;
-        private readonly IDialogService _dialogService;
+        private readonly IUserService _userService;
 
-        private string _username;
-        private string _password;
-        private string _confirmPassword;
-        private string _phone;
-        private string _address;
-        private string _errorMessage;
-        private bool _isLoading;
-
-        public string Username
+        private string _accountName;
+        public string AccountName
         {
-            get => _username;
-            set => SetProperty(ref _username, value);
+            get => _accountName;
+            set => SetProperty(ref _accountName, value);
         }
 
+        private string _password;
         public string Password
         {
             get => _password;
             set => SetProperty(ref _password, value);
         }
 
+        private string _confirmPassword;
         public string ConfirmPassword
         {
             get => _confirmPassword;
             set => SetProperty(ref _confirmPassword, value);
         }
 
+        private string _phone;
         public string Phone
         {
             get => _phone;
             set => SetProperty(ref _phone, value);
         }
 
+        private string _address;
         public string Address
         {
             get => _address;
             set => SetProperty(ref _address, value);
         }
 
+        private string _errorMessage;
         public string ErrorMessage
         {
             get => _errorMessage;
             set => SetProperty(ref _errorMessage, value);
         }
 
-        public bool IsLoading
+        public DelegateCommand RegisterCommand { get; }
+        public DelegateCommand CancelCommand { get; }
+
+        public RegisterViewModel(IUserService userService)
         {
-            get => _isLoading;
-            set => SetProperty(ref _isLoading, value);
-        }
-
-        public ICommand RegisterCommand { get; }
-        public ICommand CancelCommand { get; }
-
-        public RegisterViewModel(IDataService dataService, IDialogService dialogService)
-        {
-            _dataService = dataService;
-            _dialogService = dialogService;
-
+            _userService = userService;
             RegisterCommand = new DelegateCommand(Register, CanRegister);
             CancelCommand = new DelegateCommand(Cancel);
+
+            PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(AccountName) || e.PropertyName == nameof(Password) || e.PropertyName == nameof(ConfirmPassword))
+                    RegisterCommand.RaiseCanExecuteChanged();
+            };
         }
 
         private bool CanRegister()
         {
-            return !IsLoading &&
-                   !string.IsNullOrWhiteSpace(Username) &&
+            return !string.IsNullOrWhiteSpace(AccountName) &&
                    !string.IsNullOrWhiteSpace(Password) &&
-                   Password == ConfirmPassword &&
-                   Username.Length >= 3 &&
-                   Password.Length >= 6;
+                   !string.IsNullOrWhiteSpace(ConfirmPassword);
         }
 
-        private async void Register()
+        private void Register()
         {
-            if (!CanRegister()) return;
+            if (Password != ConfirmPassword)
+            {
+                ErrorMessage = "两次输入的密码不一致";
+                return;
+            }
 
-            IsLoading = true;
-            ErrorMessage = string.Empty;
+            var user = new User
+            {
+                AccountName = AccountName.Trim(),
+                Phone = Phone?.Trim(),
+                Address = Address?.Trim()
+            };
 
             try
             {
-                // 检查用户名是否已存在
-                var existingUser = await _dataService.GetUserByUsernameAsync(Username);
-                if (existingUser != null)
-                {
-                    ErrorMessage = "用户名已存在！";
-                    return;
-                }
-
-                // 创建新用户
-                var newUser = new User
-                {
-                    Username = Username,
-                    Password = Password,
-                    Phone = Phone,
-                    Address = Address,
-                    Role = "User",
-                    CreateTime = DateTime.Now
-                };
-
-                var success = await _dataService.AddUserAsync(newUser);
-
+                bool success = _userService.Register(user, Password);
                 if (success)
                 {
-                    _dialogService.ShowMessage("注册成功！请登录。", "注册完成");
-                    Application.Current.Windows.OfType<RegisterView>().FirstOrDefault()?.Close();
+                    ErrorMessage = string.Empty;
+                    MessageBox.Show("注册成功，请登录", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    if (Application.Current.Windows.OfType<Views.RegisterView>().FirstOrDefault() is Views.RegisterView registerWindow)
+                    {
+                        registerWindow.DialogResult = true;
+                        registerWindow.Close();
+                    }
                 }
                 else
                 {
-                    ErrorMessage = "注册失败，请稍后重试。";
+                    ErrorMessage = "注册失败，账户名可能已存在";
                 }
             }
             catch (Exception ex)
             {
                 ErrorMessage = $"注册失败：{ex.Message}";
             }
-            finally
-            {
-                IsLoading = false;
-            }
         }
 
         private void Cancel()
         {
-            Application.Current.Windows.OfType<RegisterView>().FirstOrDefault()?.Close();
+            if (Application.Current.Windows.OfType<Views.RegisterView>().FirstOrDefault() is Views.RegisterView registerView)
+            {
+                registerView.DialogResult = false;
+                registerView.Close();
+            }
         }
     }
 }

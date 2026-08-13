@@ -1,92 +1,51 @@
-﻿// ViewModels/MainWindowViewModel.cs
-using NoteApp.Services;
-using NoteApp.Views;
+﻿using System.Collections.ObjectModel;
 using Prism.Commands;
 using Prism.Mvvm;
 using Prism.Regions;
-using System.Linq;
-using System.Windows;
-using System.Windows.Input;
 
 namespace NoteApp.ViewModels
 {
     public class MainWindowViewModel : BindableBase
     {
         private readonly IRegionManager _regionManager;
-        private readonly IDialogService _dialogService;
 
-        private string _currentUsername;
-        private string _currentRole;
+        public ObservableCollection<MenuItem> MenuItems { get; }
 
-        public string CurrentUsername
+        private MenuItem _selectedMenuItem;
+        public MenuItem SelectedMenuItem
         {
-            get => _currentUsername;
-            set => SetProperty(ref _currentUsername, value);
+            get => _selectedMenuItem;
+            set
+            {
+                if (SetProperty(ref _selectedMenuItem, value) && value != null)
+                {
+                    NavigateTo(value.NavigationTarget);
+                }
+            }
         }
 
-        public string CurrentRole
-        {
-            get => _currentRole;
-            set => SetProperty(ref _currentRole, value);
-        }
-
-        public ICommand NavigateToNotesCommand { get; }
-        public ICommand NavigateToUsersCommand { get; }
-        public ICommand LogoutCommand { get; }
-        public ICommand ExitCommand { get; }
-
-        public MainWindowViewModel(IRegionManager regionManager, IDialogService dialogService)
+        public MainWindowViewModel(IRegionManager regionManager)
         {
             _regionManager = regionManager;
-            _dialogService = dialogService;
-
-            CurrentUsername = SessionManager.CurrentUsername;
-            CurrentRole = SessionManager.CurrentUserRole;
-
-            NavigateToNotesCommand = new DelegateCommand(() => NavigateTo("NoteManage"));
-            NavigateToUsersCommand = new DelegateCommand(() => NavigateTo("UserManageclaude"), CanNavigateToUsers);
-            LogoutCommand = new DelegateCommand(Logout);
-            ExitCommand = new DelegateCommand(Exit);
-        }
-
-        /// <summary>
-        /// 窗口加载完成后执行初始导航（延迟导航，确保区域适配器已初始化）
-        /// </summary>
-        public void OnWindowLoaded()
-        {
-            // 默认加载便签管理
-            NavigateTo("NoteManage");
-        }
-
-        private void NavigateTo(string viewName)
-        {
-            _regionManager.RequestNavigate(RegionNames.ContentRegion, viewName);
-        }
-
-        private bool CanNavigateToUsers()
-        {
-            return SessionManager.CurrentUserRole == "Admin";
-        }
-
-        private void Logout()
-        {
-            if (_dialogService.ShowConfirm("确定要退出登录吗？", "确认退出"))
+            MenuItems = new ObservableCollection<MenuItem>
             {
-                SessionManager.ClearSession();
+                new MenuItem { Title = "便签管理", NavigationTarget = "NoteManageView" },
+                new MenuItem { Title = "用户管理", NavigationTarget = "UserManageView" }
+            };
 
-                var loginView = new LoginView();
-                loginView.Show();
-
-                Application.Current.Windows.OfType<MainWindow>().FirstOrDefault()?.Close();
-            }
+            // 默认选中第一个菜单并导航
+            SelectedMenuItem = MenuItems[0];
         }
 
-        private void Exit()
+        private void NavigateTo(string target)
         {
-            if (_dialogService.ShowConfirm("确定要退出程序吗？", "确认退出"))
-            {
-                Application.Current.Shutdown();
-            }
+            _regionManager.RequestNavigate("ContentRegion", target);
         }
+    }
+
+    public class MenuItem
+    {
+        public string Title { get; set; }
+        public string NavigationTarget { get; set; }
     }
 }

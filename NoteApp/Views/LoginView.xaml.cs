@@ -1,7 +1,6 @@
-﻿// Views/LoginView.xaml.cs
+﻿using NoteApp.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
 
 namespace NoteApp.Views
 {
@@ -10,30 +9,14 @@ namespace NoteApp.Views
         public LoginView()
         {
             InitializeComponent();
-
-            Loaded += (s, e) => {
-                UsernameBox.Focus();
-            };
-        }
-
-        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
-        {
-            if (DataContext is ViewModels.LoginViewModel vm)
+            // 将密码框的内容同步到 ViewModel
+            PasswordBox.PasswordChanged += (s, e) =>
             {
-                vm.Password = PasswordBox.Password;
-            }
-        }
-
-        private void PasswordBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                if (DataContext is ViewModels.LoginViewModel vm)
+                if (DataContext is LoginViewModel vm)
                 {
-                    if (vm.LoginCommand.CanExecute(null))
-                        vm.LoginCommand.Execute(null);
+                    vm.Password = PasswordBox.Password;
                 }
-            }
+            };
         }
     }
 }

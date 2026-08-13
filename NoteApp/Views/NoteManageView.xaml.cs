@@ -1,5 +1,4 @@
-﻿// Views/NoteManageView.xaml.cs
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 
 namespace NoteApp.Views
 {

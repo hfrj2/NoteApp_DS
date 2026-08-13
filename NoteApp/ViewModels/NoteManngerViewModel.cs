@@ -1,279 +1,164 @@
-﻿// ViewModels/NoteManageViewModel.cs
-using NoteApp.Models;
-using NoteApp.Services;
-using Prism.Commands;
-using Prism.Mvvm;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Windows.Input;
+using Prism.Commands;
+using Prism.Mvvm;
+using NoteApp.Models;
+using NoteApp.Services;
+using System.Windows;
 
 namespace NoteApp.ViewModels
 {
     public class NoteManageViewModel : BindableBase
     {
-        private readonly IDataService _dataService;
-        private readonly IDialogService _dialogService;
+        private readonly INoteService _noteService;
 
         private ObservableCollection<Note> _notes;
-        private Note _selectedNote;
-        private Note _editingNote;
-        private string _searchText;
-        private bool _isEditing;
-        private bool _showFavoritesOnly;
-
         public ObservableCollection<Note> Notes
         {
             get => _notes;
             set => SetProperty(ref _notes, value);
         }
 
+        private Note _selectedNote;
         public Note SelectedNote
         {
             get => _selectedNote;
             set
             {
-                SetProperty(ref _selectedNote, value);
-                if (value != null)
+                if (SetProperty(ref _selectedNote, value) && value != null)
                 {
-                    EditingNote = new Note
-                    {
-                        Id = value.Id,
-                        UserId = value.UserId,
-                        Title = value.Title,
-                        Content = value.Content,
-                        CreateTime = value.CreateTime,
-                        UpdateTime = value.UpdateTime,
-                        IsFavorite = value.IsFavorite,
-                        Color = value.Color,
-                        Category = value.Category
-                    };
-                }
-                else
-                {
-                    EditingNote = null;
-                }
-                ((DelegateCommand)EditCommand).RaiseCanExecuteChanged();
-                ((DelegateCommand)DeleteCommand).RaiseCanExecuteChanged();
-                ((DelegateCommand)ToggleFavoriteCommand).RaiseCanExecuteChanged();
-            }
-        }
-
-        public Note EditingNote
-        {
-            get => _editingNote;
-            set => SetProperty(ref _editingNote, value);
-        }
-
-        public string SearchText
-        {
-            get => _searchText;
-            set
-            {
-                SetProperty(ref _searchText, value);
-                LoadNotesAsync();
-            }
-        }
-
-        public bool IsEditing
-        {
-            get => _isEditing;
-            set => SetProperty(ref _isEditing, value);
-        }
-
-        public bool ShowFavoritesOnly
-        {
-            get => _showFavoritesOnly;
-            set
-            {
-                SetProperty(ref _showFavoritesOnly, value);
-                LoadNotesAsync();
-            }
-        }
-
-        public ICommand AddCommand { get; }
-        public ICommand EditCommand { get; }
-        public ICommand DeleteCommand { get; }
-        public ICommand SaveCommand { get; }
-        public ICommand CancelCommand { get; }
-        public ICommand ToggleFavoriteCommand { get; }
-        public ICommand RefreshCommand { get; }
-
-        public NoteManageViewModel(IDataService dataService, IDialogService dialogService)
-        {
-            _dataService = dataService;
-            _dialogService = dialogService;
-
-            Notes = new ObservableCollection<Note>();
-
-            AddCommand = new DelegateCommand(AddNote);
-            EditCommand = new DelegateCommand(EditNote, CanEditNote);
-            DeleteCommand = new DelegateCommand(DeleteNote, CanDeleteNote);
-            SaveCommand = new DelegateCommand(SaveNote, CanSaveNote);
-            CancelCommand = new DelegateCommand(CancelEdit);
-            ToggleFavoriteCommand = new DelegateCommand(ToggleFavorite, CanToggleFavorite);
-            RefreshCommand = new DelegateCommand(LoadNotesAsync);
-
-            LoadNotesAsync();
-        }
-
-        private bool CanEditNote() => SelectedNote != null && !IsEditing;
-        private bool CanDeleteNote() => SelectedNote != null && !IsEditing;
-        private bool CanSaveNote() => IsEditing && EditingNote != null && !string.IsNullOrWhiteSpace(EditingNote.Title);
-        private bool CanToggleFavorite() => SelectedNote != null && !IsEditing;
-
-        private async void LoadNotesAsync()
-        {
-            try
-            {
-                var userId = SessionManager.CurrentUserId;
-                var notes = await _dataService.SearchNotesAsync(userId, SearchText);
-
-                if (ShowFavoritesOnly)
-                {
-                    notes = notes.Where(n => n.IsFavorite).ToList();
-                }
-
-                Notes.Clear();
-                foreach (var note in notes)
-                {
-                    Notes.Add(note);
+                    // 填充编辑表单
+                    EditId = value.Id;
+                    EditTitle = value.Title;
+                    EditContent = value.Content;
+                    EditCreatedAt = value.CreatedAt;
                 }
             }
-            catch (Exception ex)
-            {
-                _dialogService.ShowError($"加载便签失败：{ex.Message}");
-            }
         }
 
-        private void AddNote()
+        private int _editId;
+        public int EditId
         {
-            EditingNote = new Note
+            get => _editId;
+            set => SetProperty(ref _editId, value);
+        }
+
+        private string _editTitle;
+        public string EditTitle
+        {
+            get => _editTitle;
+            set => SetProperty(ref _editTitle, value);
+        }
+
+        private string _editContent;
+        public string EditContent
+        {
+            get => _editContent;
+            set => SetProperty(ref _editContent, value);
+        }
+
+        private DateTime _editCreatedAt;
+        public DateTime EditCreatedAt
+        {
+            get => _editCreatedAt;
+            set => SetProperty(ref _editCreatedAt, value);
+        }
+
+        public DelegateCommand AddCommand { get; }
+        public DelegateCommand SaveCommand { get; }
+        public DelegateCommand DeleteCommand { get; }
+        public DelegateCommand RefreshCommand { get; }
+
+        public NoteManageViewModel(INoteService noteService)
+        {
+            _noteService = noteService;
+            AddCommand = new DelegateCommand(Add);
+            SaveCommand = new DelegateCommand(Save, CanSave);
+            DeleteCommand = new DelegateCommand(Delete, CanDelete);
+            RefreshCommand = new DelegateCommand(Refresh);
+
+            PropertyChanged += (s, e) =>
             {
-                UserId = SessionManager.CurrentUserId,
-                Title = "新便签",
-                Content = "请输入内容...",
-                CreateTime = DateTime.Now,
-                Color = "#FFFFFF",
-                Category = "默认"
+                if (e.PropertyName == nameof(EditTitle) || e.PropertyName == nameof(EditContent))
+                    SaveCommand.RaiseCanExecuteChanged();
+                if (e.PropertyName == nameof(SelectedNote))
+                    DeleteCommand.RaiseCanExecuteChanged();
             };
-            IsEditing = true;
+
+            Refresh();
+        }
+
+        private void Add()
+        {
             SelectedNote = null;
+            EditId = 0;
+            EditTitle = string.Empty;
+            EditContent = string.Empty;
+            EditCreatedAt = DateTime.Now;
         }
 
-        private void EditNote()
+        private bool CanSave()
         {
-            if (SelectedNote == null) return;
-            IsEditing = true;
+            return !string.IsNullOrWhiteSpace(EditTitle);
         }
 
-        private async void DeleteNote()
+        private void Save()
         {
-            if (SelectedNote == null) return;
-
-            if (_dialogService.ShowConfirm($"确定要删除便签 \"{SelectedNote.Title}\" 吗？"))
+            if (EditId == 0)
             {
-                try
+                // 新增
+                var note = new Note
                 {
-                    var success = await _dataService.DeleteNoteAsync(SelectedNote.Id);
-                    if (success)
-                    {
-                        Notes.Remove(SelectedNote);
-                        SelectedNote = null;
-                        _dialogService.ShowMessage("删除成功");
-                    }
-                    else
-                    {
-                        _dialogService.ShowError("删除失败");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _dialogService.ShowError($"删除失败：{ex.Message}");
-                }
-            }
-        }
-
-        private async void SaveNote()
-        {
-            if (EditingNote == null) return;
-
-            if (string.IsNullOrWhiteSpace(EditingNote.Title))
-            {
-                _dialogService.ShowWarning("请输入便签标题");
-                return;
-            }
-
-            try
-            {
-                bool success;
-                if (EditingNote.Id == 0)
-                {
-                    success = await _dataService.AddNoteAsync(EditingNote);
-                }
-                else
-                {
-                    success = await _dataService.UpdateNoteAsync(EditingNote);
-                }
-
-                if (success)
-                {
-                    _dialogService.ShowMessage(EditingNote.Id == 0 ? "添加成功" : "更新成功");
-                    IsEditing = false;
-                    LoadNotesAsync();
-                    if (EditingNote.Id > 0)
-                    {
-                        SelectedNote = Notes.FirstOrDefault(n => n.Id == EditingNote.Id);
-                    }
-                }
-                else
-                {
-                    _dialogService.ShowError("保存失败");
-                }
-            }
-            catch (Exception ex)
-            {
-                _dialogService.ShowError($"保存失败：{ex.Message}");
-            }
-        }
-
-        private void CancelEdit()
-        {
-            IsEditing = false;
-            EditingNote = null;
-            if (SelectedNote != null)
-            {
-                EditingNote = new Note
-                {
-                    Id = SelectedNote.Id,
-                    UserId = SelectedNote.UserId,
-                    Title = SelectedNote.Title,
-                    Content = SelectedNote.Content,
-                    CreateTime = SelectedNote.CreateTime,
-                    UpdateTime = SelectedNote.UpdateTime,
-                    IsFavorite = SelectedNote.IsFavorite,
-                    Color = SelectedNote.Color,
-                    Category = SelectedNote.Category
+                    Title = EditTitle.Trim(),
+                    Content = EditContent,
+                    CreatedAt = EditCreatedAt
                 };
+                _noteService.AddNote(note);
+            }
+            else
+            {
+                // 编辑
+                var note = _noteService.GetNoteById(EditId);
+                if (note != null)
+                {
+                    note.Title = EditTitle.Trim();
+                    note.Content = EditContent;
+                    // 创建时间保持不变
+                    _noteService.UpdateNote(note);
+                }
+            }
+            Refresh();
+        }
+
+        private bool CanDelete()
+        {
+            return SelectedNote != null;
+        }
+
+        private void Delete()
+        {
+            if (SelectedNote == null) return;
+            var result = MessageBox.Show($"确定要删除便签“{SelectedNote.Title}”吗？", "确认删除", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result == MessageBoxResult.Yes)
+            {
+                _noteService.DeleteNote(SelectedNote.Id);
+                Refresh();
             }
         }
 
-        private async void ToggleFavorite()
+        private void Refresh()
         {
-            if (SelectedNote == null) return;
-
-            try
+            var list = _noteService.GetAllNotes();
+            Notes = new ObservableCollection<Note>(list);
+            if (Notes.Any())
             {
-                var success = await _dataService.ToggleFavoriteAsync(SelectedNote.Id);
-                if (success)
-                {
-                    SelectedNote.IsFavorite = !SelectedNote.IsFavorite;
-                    LoadNotesAsync();
-                }
+                SelectedNote = Notes[0];
             }
-            catch (Exception ex)
+            else
             {
-                _dialogService.ShowError($"操作失败：{ex.Message}");
+                SelectedNote = null;
+                Add();
             }
         }
     }
