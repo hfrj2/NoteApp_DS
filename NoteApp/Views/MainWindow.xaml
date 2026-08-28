@@ -28,12 +28,26 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel>
-                            <TextBlock Text="{Binding Title}" FontSize="16" Padding="10" Foreground="White"/>
+                            <TextBlock Text="{Binding Title}" FontSize="16" Padding="10">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Style.Triggers>
+                                            <!-- 无权限的菜单项灰显 -->
+                                            <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                                <Setter Property="Foreground" Value="#95A5A6"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
+                            <!-- 无权限的菜单项整体禁用：不可选中、不可点击 -->
+                            <Setter Property="IsEnabled" Value="{Binding IsEnabled}"/>
                             <Setter Property="Background" Value="Transparent"/>
                             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                             <Setter Property="Template">
@@ -46,9 +60,13 @@
                                             <Trigger Property="IsSelected" Value="True">
                                                 <Setter TargetName="Bd" Property="Background" Value="#34495E"/>
                                             </Trigger>
-                                            <Trigger Property="IsMouseOver" Value="True">
+                                            <MultiTrigger>
+                                                <MultiTrigger.Conditions>
+                                                    <Condition Property="IsMouseOver" Value="True"/>
+                                                    <Condition Property="IsEnabled" Value="True"/>
+                                                </MultiTrigger.Conditions>
                                                 <Setter TargetName="Bd" Property="Background" Value="#3D566E"/>
-                                            </Trigger>
+                                            </MultiTrigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
                                 </Setter.Value>

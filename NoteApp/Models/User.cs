@@ -18,6 +18,9 @@ namespace NoteApp.Models
 
         public string Address { get; set; }
 
+        /// <summary>是否为管理员（决定能否进入用户管理）</summary>
+        public bool IsAdmin { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

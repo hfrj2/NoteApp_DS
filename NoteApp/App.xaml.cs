@@ -56,6 +56,38 @@ namespace NoteApp
             using (var context = new AppDbContext())
             {
                 context.Database.EnsureCreated();
+
+                // 兼容旧版本数据库：给 Users 表补充 IsAdmin 列（旧库没有该列，查询会报错）
+                var connection = context.Database.GetDbConnection();
+                try
+                {
+                    if (connection.State != System.Data.ConnectionState.Open)
+                        connection.Open();
+
+                    using (var checkCmd = connection.CreateCommand())
+                    {
+                        checkCmd.CommandText = "SELECT COUNT(*) FROM pragma_table_info('Users') WHERE name = 'IsAdmin'";
+                        if (Convert.ToInt64(checkCmd.ExecuteScalar()) == 0)
+                        {
+                            using (var alterCmd = connection.CreateCommand())
+                            {
+                                alterCmd.CommandText = "ALTER TABLE Users ADD COLUMN IsAdmin INTEGER NOT NULL DEFAULT 0";
+                                alterCmd.ExecuteNonQuery();
+                            }
+                            // 旧库中已存在的 admin 账号升级为管理员
+                            using (var updateCmd = connection.CreateCommand())
+                            {
+                                updateCmd.CommandText = "UPDATE Users SET IsAdmin = 1 WHERE AccountName = 'admin'";
+                                updateCmd.ExecuteNonQuery();
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    connection.Close();
+                }
+
                 // 种子数据：创建默认管理员
                 if (!context.Users.Any())
                 {
@@ -65,6 +97,7 @@ namespace NoteApp
                         PasswordHash = PasswordHasher.HashPassword("admin123"),
                         Phone = "",
                         Address = "",
+                        IsAdmin = true,
                         CreatedAt = DateTime.Now
                     };
                     context.Users.Add(admin);
