@@ -6,6 +6,6 @@
     ShutdownMode="OnLastWindowClose">
     <Application.Resources>
         <!--  可以放置全局样式  -->
-        <ResourceDictionary Source="/Styles/Styles.xaml"/>
+        <ResourceDictionary Source="/Styles/Styles.xaml" />
     </Application.Resources>
 </prism:PrismApplication>

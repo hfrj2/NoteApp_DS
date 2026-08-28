@@ -23,7 +23,7 @@
                     Padding="20,10"
                     Background="#27AE60"
                     Command="{Binding AddCommand}"
-                    Content="保存"
+                    Content="新增"
                     Cursor="Hand"
                     FontSize="14"
                     FontWeight="SemiBold"
